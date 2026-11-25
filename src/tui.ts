@@ -110,7 +110,7 @@ export async function attach(client: LocalClient, human: Human, available: boole
       const compact = width < 44 || height < 12;
       const wide = width >= 100 && height >= 24;
       const task = taskForView();
-      set(header, `Human Agent    ${human.worker}  /  ${networkError ? "OFFLINE" : snapshot?.availability ?? "CONNECTING"}`);
+      set(header, `doormat    ${human.worker}  /  ${networkError ? "OFFLINE" : snapshot?.availability ?? "CONNECTING"}`);
       const showOfferPolicy = !!snapshot?.task && snapshot.task.state !== "OFFERED";
       set(status, showOfferPolicy ? `Offers after this task   ${snapshot!.offersEnabled ? "enabled" : "paused"}` : "");
       status.visible = !compact && showOfferPolicy;

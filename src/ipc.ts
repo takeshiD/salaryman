@@ -60,7 +60,7 @@ export async function listen(socketPath: string, service: AgentService) {
         if (error.code === "ECONNREFUSED") resolve();
         else reject(error);
       });
-      socket.once("connect", () => { socket.destroy(); reject(new Error("A Human Agent daemon is already listening")); });
+      socket.once("connect", () => { socket.destroy(); reject(new Error("A doormat daemon is already listening")); });
       socket.setTimeout(2_000, () => { socket.destroy(); reject(new Error("Existing socket did not respond")); });
     });
     unlinkSync(socketPath);

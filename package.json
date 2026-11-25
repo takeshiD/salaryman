@@ -1,10 +1,11 @@
 {
-  "name": "human-agent",
+  "name": "doormat",
+  "description": "human as an agent",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "human-agent": "./src/cli.ts"
+    "doormat": "./src/cli.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

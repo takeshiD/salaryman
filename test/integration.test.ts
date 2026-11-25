@@ -32,8 +32,8 @@ beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), "ha-ipc-"));
   repo = join(root, "git repo");
   env = { PATH: process.env.PATH!, HOME: root, GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: "/dev/null",
-    XDG_STATE_HOME: join(root, "state"), XDG_RUNTIME_DIR: join(root, "run"), HUMAN_AGENT_PARENT_TOKEN: owner,
-    HUMAN_AGENT_REPOSITORIES: JSON.stringify({ demo: repo }) };
+    XDG_STATE_HOME: join(root, "state"), XDG_RUNTIME_DIR: join(root, "run"), DOORMAT_PARENT_TOKEN: owner,
+    DOORMAT_REPOSITORIES: JSON.stringify({ demo: repo }) };
   mkdirSync(repo);
   git("init", "-q");
   writeFileSync(join(repo, "example"), "base\n");
@@ -128,10 +128,10 @@ test("MCP SDK stdio lists tools, delegates, exchanges messages and reviews a sub
   await start();
   const tokenFile = join(root, "parent.token");
   writeFileSync(tokenFile, owner + "\n", { mode: 0o600 });
-  const { HUMAN_AGENT_PARENT_TOKEN: _token, ...stdioEnv } = env;
+  const { DOORMAT_PARENT_TOKEN: _token, ...stdioEnv } = env;
   const transport = new StdioClientTransport({ command: process.execPath, args: ["--no-env-file", entry, "mcp"],
-    env: { ...stdioEnv, HUMAN_AGENT_PARENT_TOKEN_FILE: tokenFile }, stderr: "pipe" });
-  const client = new Client({ name: "human-agent-test", version: "0.1.0" });
+    env: { ...stdioEnv, DOORMAT_PARENT_TOKEN_FILE: tokenFile }, stderr: "pipe" });
+  const client = new Client({ name: "doormat-test", version: "0.1.0" });
   try {
     await client.connect(transport);
     expect((await client.listTools()).tools.map((tool) => tool.name)).toContain("complete_human_task");
@@ -248,4 +248,22 @@ test("workspace setup rejects repository-defined external filters", async () => 
   const offer = (await ipc.human(human, "connect", { available: true })).task!;
   await expect(ipc.human(human, "accept", { taskId, offerId: offer.offerId! })).rejects.toThrow("external filters");
   expect((await ipc.parent(owner, "get_human_status", { taskId })).state).toBe("ACCEPTED");
+});
+
+test("legacy environment variables still connect to the existing runtime", async () => {
+  env.HUMAN_AGENT_PARENT_TOKEN = owner;
+  env.HUMAN_AGENT_REPOSITORIES = env.DOORMAT_REPOSITORIES!;
+  delete env.DOORMAT_PARENT_TOKEN;
+  delete env.DOORMAT_REPOSITORIES;
+  await start();
+  const payload = JSON.stringify({ ...taskSpec, workspace: { repository: "demo", ref: base } });
+  const child = Bun.spawn([process.execPath, entry, "parent", "delegate_to_human", "-"], {
+    env, stdin: new Blob([payload]), stdout: "pipe", stderr: "pipe",
+  });
+  const [exit, output, errors] = await Promise.all([
+    child.exited, new Response(child.stdout).text(), new Response(child.stderr).text(),
+  ]);
+  expect(errors).toBe("");
+  expect(exit).toBe(0);
+  expect((await ipc.parent(owner, "get_human_status", { taskId: JSON.parse(output).taskId })).state).toBe("QUEUED");
 });

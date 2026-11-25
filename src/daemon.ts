@@ -11,7 +11,7 @@ function lock(path: string) {
   try { db.exec("PRAGMA busy_timeout=0; BEGIN EXCLUSIVE;"); }
   catch {
     db.close();
-    throw new Error("The Human Agent runtime or state directory is already in use");
+    throw new Error("The doormat runtime or state directory is already in use");
   }
   return db;
 }
@@ -32,7 +32,7 @@ export async function daemon() {
         const service = new AgentService(repo, workspaces);
         service.start();
         const listener = await listen(config.socket, service);
-        console.error(`Human Agent listening at ${config.socket}`);
+        console.error(`doormat listening at ${config.socket}`);
         const timer = setInterval(() => {
           try { service.tick(); }
           catch (error) { console.error("Queue tick failed:", error); }

@@ -8,7 +8,7 @@ const repositoryMap = z.record(id, z.string().refine(isAbsolute));
 const hash = /^[0-9a-f]{40}$|^[0-9a-f]{64}$/;
 
 export function configuredRepositories() {
-  return repositoryMap.parse(JSON.parse(process.env.HUMAN_AGENT_REPOSITORIES ?? "{}"));
+  return repositoryMap.parse(JSON.parse(process.env.DOORMAT_REPOSITORIES ?? process.env.HUMAN_AGENT_REPOSITORIES ?? "{}"));
 }
 
 function gitEnvironment() {
@@ -102,7 +102,7 @@ export class GitWorkspaces implements WorkspacePort {
 }
 
 export async function tmuxWorkspace(path: string, id: string) {
-  const name = "human-agent-" + taskId.parse(id);
+  const name = "doormat-" + taskId.parse(id);
   if (!isAbsolute(path) || await realpath(path) !== path) throw new Error("The workspace path has moved");
   const session = Bun.spawn(["tmux", "has-session", "-t", "=" + name], { stdout: "ignore", stderr: "ignore" });
   if (await session.exited !== 0) {

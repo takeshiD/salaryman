@@ -34,8 +34,9 @@ export function ownSocket(path: string, checkMode = true) {
 }
 
 export function parentToken() {
-  const file = process.env.HUMAN_AGENT_PARENT_TOKEN_FILE;
-  let value = process.env.HUMAN_AGENT_PARENT_TOKEN;
+  const renamedConfig = process.env.DOORMAT_PARENT_TOKEN || process.env.DOORMAT_PARENT_TOKEN_FILE;
+  const file = renamedConfig ? process.env.DOORMAT_PARENT_TOKEN_FILE : process.env.HUMAN_AGENT_PARENT_TOKEN_FILE;
+  let value = renamedConfig ? process.env.DOORMAT_PARENT_TOKEN : process.env.HUMAN_AGENT_PARENT_TOKEN;
   if (!value && file) {
     if (!isAbsolute(file)) throw new DomainError("CONFIG", "Parent token file path must be absolute");
     const info = lstatSync(file);
@@ -45,7 +46,7 @@ export function parentToken() {
     value = readFileSync(file, "utf8").trim();
   }
   const parsed = token.safeParse(value);
-  if (!parsed.success) throw new DomainError("CONFIG", "Configure a stable random HUMAN_AGENT_PARENT_TOKEN or HUMAN_AGENT_PARENT_TOKEN_FILE");
+  if (!parsed.success) throw new DomainError("CONFIG", "Configure a stable random DOORMAT_PARENT_TOKEN or DOORMAT_PARENT_TOKEN_FILE");
   return parsed.data;
 }
 

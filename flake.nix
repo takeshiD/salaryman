@@ -1,5 +1,5 @@
 {
-  description = "Human Agent local runtime development shell";
+  description = "doormat local runtime development shell";
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   outputs = { nixpkgs, ... }:
     let
