@@ -1,0 +1,19 @@
+[Unit]
+Description=Human Agent local delegation daemon
+After=local-fs.target
+
+[Service]
+Type=simple
+# Replace these two paths with the Bun executable and checkout on this machine.
+WorkingDirectory=%h/src/human-agent
+ExecStart=%h/.nix-profile/bin/bun --no-env-file %h/src/human-agent/src/cli.ts daemon
+Environment=PATH=%h/.nix-profile/bin:/run/current-system/sw/bin:/usr/bin:/bin
+EnvironmentFile=-%h/.config/human-agent/daemon.env
+RuntimeDirectory=human-agent
+RuntimeDirectoryMode=0700
+UMask=0077
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
