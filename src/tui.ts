@@ -1,52 +1,31 @@
 import {
-  BoxRenderable, CliRenderEvents, createCliRenderer, ScrollBoxRenderable, TextareaRenderable, TextRenderable,
+  bold, BoxRenderable, CliRenderEvents, createCliRenderer, fg, ScrollBoxRenderable, stringToStyledText, StyledText,
+  TextareaRenderable, TextRenderable,
   type KeyEvent,
 } from "@opentui/core";
 import type { LocalClient } from "./ipc";
 import { DomainError, submission, type Snapshot, type Task, type TaskEvent } from "./model";
 import type { Human } from "./service";
+import { feedContent, isConversation, isParentUpdate, taskBrief, utcDate, type Segment, type Tone } from "./tui-view";
 
 const clean = (text: string) => text.replace(/[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, "");
 const errorText = (error: unknown) => error instanceof Error ? clean(error.message) : "Unexpected error";
-const date = (milliseconds: number) => new Date(milliseconds).toISOString().replace("T", " ").replace(/\.\d{3}Z$/, " UTC");
+const palette: Record<Tone, string> = {
+  body: "#dee6ec", title: "#f7fafc", label: "#a7c7d4", muted: "#96a6b7",
+  accent: "#95e7cb", attention: "#ffd38f", review: "#cfc0ff", error: "#ffaaa6",
+};
+const background = "#10171f";
+const surface = "#171f29";
+const border = "#394a5b";
 
-function describe(task: Task, displayedAvailability?: string) {
-  return [
-    task.spec.title,
-    [task.state !== displayedAvailability ? task.state : "", `Revision ${task.revision}`].filter(Boolean).join("   /   "),
-    `Task   ${task.id}`,
-    `Parent ${task.spec.parentId}${task.spec.parentTaskId ? " / " + task.spec.parentTaskId : ""}`,
-    task.offerUntil ? `Offer expires   ${date(task.offerUntil)}` : "",
-    task.spec.deadline ? `Deadline   ${date(Date.parse(task.spec.deadline))}` : "",
-    task.spec.timeBudgetMinutes ? `Time budget   ${task.spec.timeBudgetMinutes} min (advisory)` : "",
-    task.spec.allowedTools ? `Declared tools   ${task.spec.allowedTools.join(", ") || "none"}` : "",
-    task.spec.workspace ? `Repository   ${task.spec.workspace.repository} @ ${task.spec.workspace.ref}` : "",
-    task.workspacePath ? `Workspace   ${task.workspacePath}\nBase   ${task.commit}` : "",
-    "\nInstructions", task.spec.instructions,
-    task.spec.context ? "\nScoped context\n" + task.spec.context : "",
-    task.spec.expectedOutputSchema ? "\nExpected output (JSON)\n" + JSON.stringify(task.spec.expectedOutputSchema, null, 2) : "",
-  ].filter((value) => value !== "").join("\n");
-}
-
-function eventText(event: TaskEvent) {
-  const prefix = `${date(event.at).slice(11, 19)}  ${event.actor}`;
-  switch (event.type) {
-    case "transition": return `${prefix} · ${event.to}${event.detail ? "\n" + event.detail : ""}`;
-    case "submission": return `${prefix} · Submitted revision ${event.revision}\n${event.submissionId}`;
-    case "workspace_ready": return `${prefix} · Workspace ready\n${event.path}`;
-    default: return `${prefix} · ${event.type.replaceAll("_", " ")}\n${event.text}`;
-  }
-}
-
-type View = "task" | "messages" | "history";
+type View = "task" | "updates" | "activity" | "history";
 type FormKind = "ask" | "reject" | "submit" | "json" | "abandon";
 type Draft = { kind: FormKind; task: Task; initial: string; submissionId: string };
 
 export async function attach(client: LocalClient, human: Human, available: boolean) {
   const noColor = process.env.NO_COLOR !== undefined;
-  const accent = noColor ? undefined : "#75d5bd";
-  const dim = noColor ? undefined : "#a8aeb8";
   const renderer = await createCliRenderer({ useMouse: false, useKittyKeyboard: null, exitOnCtrlC: false,
+    backgroundColor: noColor ? undefined : background,
     screenMode: "alternate-screen", consoleMode: "disabled", openConsoleOnError: false });
   const done = new Promise<void>((resolve) => renderer.once(CliRenderEvents.DESTROY, resolve));
   let timer: ReturnType<typeof setInterval> | undefined;
@@ -56,31 +35,39 @@ export async function attach(client: LocalClient, human: Human, available: boole
     root.flexDirection = "column";
     root.paddingLeft = 1;
     root.paddingRight = 1;
-    function label(id: string, fg?: string) {
-      return new TextRenderable(renderer, { id, fg, wrapMode: "word", flexShrink: 0, width: "100%" });
+    function label(id: string) {
+      return new TextRenderable(renderer, { id, wrapMode: "word", flexShrink: 0, width: "100%" });
     }
-    const header = label("header", accent);
-    const status = label("status", dim);
-    const body = new BoxRenderable(renderer, { id: "body", flexGrow: 1, minHeight: 0, gap: 2 });
-    function pane(id: string) {
-      const box = new ScrollBoxRenderable(renderer, { id, flexGrow: 1, flexBasis: 0, minWidth: 0, minHeight: 0,
+    const header = label("header");
+    header.wrapMode = "none";
+    header.truncate = true;
+    const tabs = label("tabs");
+    const body = new BoxRenderable(renderer, { id: "body", flexGrow: 1, minHeight: 0, gap: 1 });
+    function pane(id: string, weight: number) {
+      const panel = new BoxRenderable(renderer, { id, flexGrow: weight, flexBasis: 0, minWidth: 0, minHeight: 0,
+        flexDirection: "column", border: true, borderStyle: "rounded", borderColor: noColor ? undefined : border,
+        backgroundColor: noColor ? undefined : surface, paddingLeft: 1, paddingRight: 1 });
+      const box = new ScrollBoxRenderable(renderer, { id: id + "-scroll", flexGrow: 1, minHeight: 0,
         focusable: false, scrollY: true, verticalScrollbarOptions: { visible: false } });
       const content = label(id + "-content");
       box.add(content);
-      body.add(box);
-      return { box, content };
+      panel.add(box);
+      body.add(panel);
+      return { panel, box, content };
     }
-    const taskPane = pane("task");
-    const messages = pane("messages");
-    const form = new BoxRenderable(renderer, { id: "form", flexGrow: 1, minHeight: 0, flexDirection: "column", visible: false });
-    const formTitle = label("form-title", accent);
+    const taskPane = pane("task", 6);
+    const messages = pane("messages", 5);
+    const form = new BoxRenderable(renderer, { id: "form", flexGrow: 1, minHeight: 0, flexDirection: "column", visible: false,
+      border: true, borderStyle: "rounded", borderColor: noColor ? undefined : border, paddingLeft: 1, paddingRight: 1 });
+    const formTitle = label("form-title");
     const input = new TextareaRenderable(renderer, { id: "draft", flexGrow: 1, width: "100%", wrapMode: "word",
       placeholder: "Type or paste here" });
     form.add(formTitle);
     form.add(input);
-    const notice = label("notice", dim);
-    const keys = label("keys", accent);
-    for (const element of [header, status, body, form, notice, keys]) root.add(element);
+    const notice = label("notice");
+    const actions = label("actions");
+    const keys = label("keys");
+    for (const element of [header, tabs, body, form, notice, actions, keys]) root.add(element);
 
     let snapshot: Snapshot | undefined;
     let view: View = "task";
@@ -93,62 +80,122 @@ export async function attach(client: LocalClient, human: Human, available: boole
     let lastTask = "";
     let eventId = "";
     let cursor = 0;
+    let loadingEvents = false;
+    let parentUpdates = 0;
+    let unread = 0;
     let events: TaskEvent[] = [];
+    let conversation: TaskEvent[] = [];
+    const openedThrough = new Map<string, number>();
     let history: Task[] = [];
     let selected: Task | undefined;
     let draft: Draft | undefined;
     const drafts = new Map<string, Draft>();
-    const set = (label: TextRenderable, value: string) => {
-      const sanitized = clean(value);
-      if (label.plainText !== sanitized) label.content = sanitized;
+    const drawn = new WeakMap<TextRenderable, string>();
+    const set = (label: TextRenderable, value: Segment[]) => {
+      const key = JSON.stringify(value);
+      if (drawn.get(label) === key) return;
+      drawn.set(label, key);
+      label.content = new StyledText(value.map(([part, tone = "body"]) => {
+        const text = clean(part);
+        const color = fg(palette[tone]);
+        const strong = tone !== "muted" && tone !== "body";
+        if (noColor) return strong ? bold(text) : stringToStyledText(text).chunks[0]!;
+        return color(strong ? bold(text) : text);
+      }));
     };
     const taskForView = () => selected ?? snapshot?.task ?? null;
+    const compactScreen = () => renderer.width < 44 || renderer.height < 12;
+    function showEventsFor(id: string) {
+      if (eventId === id) return;
+      eventId = id;
+      cursor = 0;
+      parentUpdates = 0;
+      unread = 0;
+      loadingEvents = !!id;
+      events = [];
+      conversation = [];
+      messages.box.scrollTo(0);
+    }
+    function markUpdatesOpened() {
+      if (view !== "updates" || draft || compactScreen() || messages.box.scrollTop > 0 || !eventId) return;
+      if (cursor > (openedThrough.get(eventId) ?? 0)) openedThrough.set(eventId, cursor);
+      unread = 0;
+    }
     function render() {
       if (stopped) return;
-      const width = renderer.width;
-      const height = renderer.height;
-      const compact = width < 44 || height < 12;
-      const wide = width >= 100 && height >= 24;
+      const compact = compactScreen();
+      const wide = renderer.width >= 100 && renderer.height >= 24;
       const task = taskForView();
-      set(header, `doormat    ${human.worker}  /  ${networkError ? "OFFLINE" : snapshot?.availability ?? "CONNECTING"}`);
-      const showOfferPolicy = !!snapshot?.task && snapshot.task.state !== "OFFERED";
-      set(status, showOfferPolicy ? `Offers after this task   ${snapshot!.offersEnabled ? "enabled" : "paused"}` : "");
-      status.visible = !compact && showOfferPolicy;
+      const secondary = view === "updates" || view === "activity";
+      const showFeed = !!task && view !== "history" && (wide || secondary);
+      const presence = networkError ? "OFFLINE" : snapshot?.availability ?? "CONNECTING";
+      showEventsFor(view !== "history" ? task?.id ?? "" : "");
+      markUpdatesOpened();
+      set(header, [["doormat", "accent"], ["  /  ", "muted"],
+        ...(!snapshot?.task || networkError ? [[presence + "   ", networkError ? "error" : "label"]] satisfies Segment[] : []),
+        [human.worker, "muted"]]);
+      const tab = (name: string, active: boolean, tone: Tone = "muted"): Segment =>
+        [active ? `[${name}]` : name, active ? "title" : tone];
+      const updateCount = unread ? ` (${unread} new)` : parentUpdates ? ` (${parentUpdates})` : "";
+      tabs.visible = !compact && !draft && !!task && view !== "history";
+      set(tabs, [
+        tab(view === "task" ? "Task" : "Esc Task", view === "task"), ["   "],
+        tab(`m Updates${updateCount}`, view === "updates", unread ? "attention" : "muted"), ["   "],
+        tab("l Activity", view === "activity"),
+      ]);
       body.visible = !compact && !draft;
       form.visible = !compact && !!draft;
       body.flexDirection = wide ? "row" : "column";
-      taskPane.box.visible = view !== "messages" || wide;
-      messages.box.visible = view !== "history" && (!!task && (wide || view === "messages"));
+      taskPane.panel.visible = !secondary || wide || !task;
+      messages.panel.visible = showFeed;
+      if (!noColor) {
+        taskPane.panel.borderColor = !secondary ? palette.label : border;
+        messages.panel.borderColor = secondary ? palette.label : border;
+      }
       if (view === "history") {
-        set(taskPane.content, "Recent assignments\n\n" + (history.length
-          ? history.map((old, i) => `${i + 1}  ${old.state.padEnd(10)} ${old.spec.title}\n    ${date(old.updatedAt)}`).join("\n")
-          : "Your completed, declined, or cancelled assignments will appear here."));
+        set(taskPane.content, [["Recent assignments\n\n", "title"], ...(history.length
+          ? history.flatMap((old, i): Segment[] => [[`${i + 1}  ${old.spec.title}\n`, "label"],
+            [`   ${old.state}  ·  ${utcDate(old.updatedAt)}\n\n`, "muted"]])
+          : [["Your past assignments will appear here.", "muted"]] satisfies Segment[])]);
       } else {
-        set(taskPane.content, task ? describe(task, selected || networkError ? undefined : snapshot?.availability) : (snapshot?.offersEnabled
-          ? "Waiting for a task offer." : "Press p to receive task offers."));
+        set(taskPane.content, task ? taskBrief(task) : [
+          [networkError ? "Waiting to reconnect" : !snapshot ? "" : snapshot.offersEnabled ? "Waiting for a task offer" : "Task offers are paused", "title"],
+          ...(snapshot && !snapshot.offersEnabled && !networkError ? [["\n\nPress p when you’re ready to receive work.", "muted"]] satisfies Segment[] : []),
+        ]);
       }
-      const previous = messages.box.scrollHeight;
-      const follow = messages.box.scrollTop + messages.box.viewport.height >= previous - 1;
-      set(messages.content, `Messages and activity${events.length === 80 ? " · last 80 events" : ""}\n\n`
-        + (events.length ? events.map(eventText).join("\n\n") : "No activity yet."));
-      if (follow && messages.box.visible) messages.box.scrollTo(Infinity);
-      set(notice, compact ? "Terminal too small. Use at least 44 × 12." : (networkError || hint || ""));
+      if (showFeed) {
+        const mode = view === "activity" ? "activity" : "updates";
+        const rows = mode === "activity" ? events : conversation;
+        set(messages.content, [[mode === "activity" ? "Task activity" : "Updates from the parent", "title"], ["  ·  UTC\n", "muted"],
+          ...(!wide && task ? [[task.spec.title + "\n", "muted"]] satisfies Segment[] : []),
+          ["\n"], ...feedContent(rows, mode, loadingEvents, openedThrough.get(eventId) ?? 0),
+          ...(rows.length === 80 ? [["\nShowing the latest 80 entries.", "muted"]] satisfies Segment[] : [])]);
+      }
+      set(notice, [[compact ? "Terminal too small. Use at least 44 × 12." : networkError || hint, networkError ? "error" : "muted"]]);
       notice.visible = compact || !!(networkError || hint);
-      const actions = [];
-      if (!selected && task?.state === "OFFERED") actions.push("a Accept", "r Reject");
-      if (!selected && (task?.state === "WORKING" || task?.state === "BLOCKED")) {
-        actions.push("k Ask", "s Submit", "j JSON");
+      const availableActions: string[] = [];
+      if (view === "history") {
+        if (history.length) availableActions.push("1–9 Open");
+      } else if (!networkError && !selected) {
+        if (task?.state === "OFFERED") availableActions.push("a Accept", "r Decline");
+        if (task?.state === "WORKING" || task?.state === "BLOCKED") {
+          availableActions.push("k Ask parent", "s Submit", "j JSON");
+        }
+        if (task?.state === "ACCEPTED") availableActions.push("w Retry workspace");
+        if (task && ["ACCEPTED", "WORKING", "BLOCKED"].includes(task.state)) availableActions.push("x Abandon");
       }
-      if (!selected && task?.state === "ACCEPTED") actions.push("w Retry workspace");
-      else if (task?.workspacePath) actions.push("w tmux");
-      if (!selected && task && ["ACCEPTED", "WORKING", "BLOCKED"].includes(task.state)) actions.push("x Abandon");
-      if (view === "history") actions.splice(0, actions.length, "1–9 Open");
-      set(keys, compact ? (draft ? "Esc Save draft and go back" : "q Disconnect") : draft ? "F2 Send   Esc Back   Enter New line"
-        : [ ...actions, task && view !== "history" ? "m Messages" : "", "h History", "p Pause/resume", "↑↓ Scroll", "q Disconnect" ].filter(Boolean).join("   "));
+      if (view !== "history" && task?.workspacePath) availableActions.push("w tmux");
+      actions.visible = !compact && !draft && availableActions.length > 0;
+      set(actions, [[availableActions.join("   "), "accent"]]);
+      const controls = ["h History", snapshot?.offersEnabled ? "p Pause offers" : "p Enable offers",
+        task || view === "history" ? "↑↓ Scroll" : "", "q Disconnect"];
+      set(keys, [[compact ? (draft ? "Esc Save draft and go back" : "q Disconnect")
+        : draft ? "F2 Send   Esc Back   Enter New line" : controls.filter(Boolean).join("   "), "muted"]]);
     }
 
     async function refresh() {
       try {
+        const previousRevision = snapshot?.task?.revision;
         if (needsConnect) {
           snapshot = await client.human(human, "connect", { available: initialOptIn });
           initialOptIn = false;
@@ -156,23 +203,31 @@ export async function attach(client: LocalClient, human: Human, available: boole
         } else snapshot = await client.human(human, "heartbeat", {});
         networkError = "";
         const assigned = snapshot.task?.id ?? "";
+        if (snapshot.task?.revision !== previousRevision && hint === "Submission sent.") hint = "";
         if (assigned !== lastTask) {
           if (lastTask && !assigned) hint = "Assignment closed. Press h for history and feedback.";
           else if (assigned) hint = "";
           lastTask = assigned;
-          if (!selected && view !== "history") taskPane.box.scrollTo(0);
+          if (!selected && view !== "history") {
+            view = "task";
+            taskPane.box.scrollTo(0);
+          }
         }
-        const task = taskForView();
-        if ((task?.id ?? "") !== eventId) {
-          eventId = task?.id ?? "";
-          cursor = 0;
-          events = [];
-        }
+        const task = view === "history" ? null : taskForView();
+        showEventsFor(task?.id ?? "");
         if (task) {
-          const page = await client.human(human, "human_events", { taskId: task.id, after: cursor });
-          if (eventId === task.id) {
+          for (let i = 0; i < 4; i++) {
+            const page = await client.human(human, "human_events", { taskId: task.id, after: cursor });
+            if (eventId !== task.id || stopped) break;
             events = [...events, ...page.events].slice(-80);
+            conversation = [...conversation, ...page.events.filter(isConversation)].slice(-80);
+            const seen = openedThrough.get(task.id) ?? 0;
+            const updates = page.events.filter(isParentUpdate);
+            parentUpdates += updates.length;
+            unread += updates.filter((event) => event.seq > seen).length;
             cursor = page.nextCursor;
+            loadingEvents = page.hasMore;
+            if (!page.hasMore) break;
           }
         }
         if (view === "history") history = await client.human(human, "history", { limit: 9 });
@@ -202,8 +257,9 @@ export async function attach(client: LocalClient, human: Human, available: boole
       if (kind === "json") next.initial = JSON.stringify({ summary: "", evidence: [], ...(task.workspacePath ? { gitRef: "" } : {}),
         ...(task.spec.expectedOutputSchema ? { output: {} } : {}) }, null, 2);
       draft = drafts.get(draftKey(next)) ?? next;
-      set(formTitle, { ask: "Ask the parent", reject: "Decline offer", abandon: "Abandon assignment",
-        submit: "Submit summary", json: "Submit JSON · summary, evidence[], gitRef, diff, output" }[kind]);
+      set(formTitle, [[{ ask: "Ask the parent", reject: "Decline offer", abandon: "Abandon assignment",
+        submit: "Submit summary", json: "Submit JSON · summary, evidence[], gitRef, diff, output" }[kind], "title"],
+        ["\n" + task.spec.title + "\n", "muted"]]);
       input.setText(draft.initial);
       render();
       input.focus();
@@ -245,19 +301,20 @@ export async function attach(client: LocalClient, human: Human, available: boole
       }
       if (draft) {
         if (key.name === "escape" && !busy) { stop(); closeDraft(true); }
-        if (renderer.width < 44 || renderer.height < 12) { stop(); return; }
+        if (compactScreen()) { stop(); return; }
         if (key.name === "f2") { stop(); void act(sendDraft); }
         if (busy) stop();
         return;
       }
       if (key.name === "q" && !key.ctrl) { stopped = true; renderer.destroy(); return; }
-      if (busy || key.ctrl || renderer.width < 44 || renderer.height < 12) return;
+      if (busy || key.ctrl || compactScreen()) return;
       const task = taskForView();
-      const scroller = view === "messages" ? messages.box : taskPane.box;
+      const scroller = view === "updates" || view === "activity" ? messages.box : taskPane.box;
       if (["up", "down", "pageup", "pagedown", "home", "end"].includes(key.name)) {
         const delta = { up: -1, down: 1, pageup: -scroller.viewport.height, pagedown: scroller.viewport.height };
         if (key.name === "home" || key.name === "end") scroller.scrollTo(key.name === "home" ? 0 : Infinity);
         else scroller.scrollBy(delta[key.name as keyof typeof delta]);
+        if (view === "updates" && unread) scroller.afterLayout(render);
         return;
       }
       if (key.name === "p" && snapshot) {
@@ -273,8 +330,10 @@ export async function attach(client: LocalClient, human: Human, available: boole
       } else if (view === "history") {
         const old = history[Number(key.name) - 1];
         if (old) { selected = old; view = "task"; taskPane.box.scrollTo(0); render(); poll(); }
-      } else if (key.name === "m" && task) {
-        view = view === "messages" ? "task" : "messages";
+      } else if ((key.name === "m" || key.name === "l") && task) {
+        const target = key.name === "m" ? "updates" : "activity";
+        view = view === target ? "task" : target;
+        if (view !== "task") messages.box.scrollTo(0);
         render();
       } else if (task) {
         if (key.name === "w" && task.workspacePath) {

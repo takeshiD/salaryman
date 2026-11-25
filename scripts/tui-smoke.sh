@@ -48,23 +48,38 @@ task=$(parent delegate_to_human - <<'JSON' | jq -r .taskId
 JSON
 )
 wait_for 'a Accept'
+wait_for 'Instructions'
+send m
+wait_for 'No updates from the parent yet.'
+send m
 send a
-wait_for 'WORKING'
+wait_for 'In progress'
+jq -cn --arg taskId "$task" '{taskId:$taskId,text:"Also check the filename."}' | parent message_human - >/dev/null
+wait_for 'm Updates (1 new)'
+wait_for 'Instructions'
+send m
+wait_for '[m Updates (1)]'
+wait_for 'Parent message'
+wait_for 'Also check the filename.'
+send l
+wait_for 'Task activity'
+send Escape
+wait_for 'Instructions'
 send k
 wait_for 'Ask the parent'
 send -l 'Should the result include test evidence?'
 send F2
-wait_for 'BLOCKED'
+wait_for 'Waiting for parent'
 jq -cn --arg taskId "$task" '{taskId:$taskId}' | parent get_task_events - \
   | jq -e 'any(.events[]; .type == "question" and .text == "Should the result include test evidence?")' >/dev/null
 jq -cn --arg taskId "$task" '{taskId:$taskId,text:"Yes, include the smoke test result."}' | parent message_human - >/dev/null
-wait_for 'WORKING'
+wait_for 'm Updates (1 new)'
 send m
 wait_for 'Yes, include the smoke test result.'
 "${tmux_cmd[@]}" resize-window -t smoke -x 40 -y 10
 wait_for 'Terminal too small'
 "${tmux_cmd[@]}" resize-window -t smoke -x 108 -y 29
-wait_for 'Messages and activity'
+wait_for 'Updates from the parent'
 send s
 wait_for 'Submit summary'
 "${tmux_cmd[@]}" resize-window -t smoke -x 40 -y 10
@@ -73,13 +88,32 @@ send Escape
 wait_for 'q Disconnect'
 "${tmux_cmd[@]}" resize-window -t smoke -x 80 -y 24
 wait_for 's Submit'
+send Escape
+wait_for 'Instructions'
 send s
 wait_for 'Submit summary'
 send -l 'The sample answer passed the smoke test.'
 send F2
-wait_for 'SUBMITTED'
+wait_for 'Submitted for review'
 submission=$(jq -cn --arg taskId "$task" '{taskId:$taskId}' | parent get_human_result - \
   | jq -er '.submission | select(.summary == "The sample answer passed the smoke test.").submissionId')
+jq -cn --arg taskId "$task" --arg submissionId "$submission" '{taskId:$taskId,submissionId:$submissionId,feedback:"Please include the fixture name."}' \
+  | parent reopen_human_task - >/dev/null
+wait_for 'Changes requested'
+wait_for 'Revision 2'
+wait_for 'm Updates (1 new)'
+send m
+wait_for 'Review feedback'
+wait_for 'Please include the fixture name.'
+send Escape
+wait_for 'Instructions'
+send s
+wait_for 'Submit summary'
+send -l 'The smoke test passed for answer.txt.'
+send F2
+wait_for 'Submitted for review'
+submission=$(jq -cn --arg taskId "$task" '{taskId:$taskId}' | parent get_human_result - \
+  | jq -er '.submission | select(.revision == 2).submissionId')
 jq -cn --arg taskId "$task" --arg submissionId "$submission" '{taskId:$taskId,submissionId:$submissionId,feedback:"Confirmed."}'   | parent complete_human_task - >/dev/null
 wait_for 'Assignment closed'
 send h
