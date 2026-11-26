@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="492" viewBox="0 0 760 492" role="img" aria-labelledby="workflow-title workflow-description" content="&lt;mxfile&gt;&lt;diagram id=&quot;delegation-workflow&quot; name=&quot;Delegation workflow&quot;&gt;&lt;mxGraphModel adaptiveColors=&quot;auto&quot; background=&quot;#f8fafc&quot; page=&quot;1&quot; pageWidth=&quot;760&quot; pageHeight=&quot;492&quot;&gt;&lt;root&gt;
+&lt;mxCell id=&quot;0&quot;/&gt;
+&lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;
+&lt;mxCell id=&quot;requester&quot; value=&quot;&amp;lt;b&amp;gt;Human requester&amp;lt;/b&amp;gt;&quot; style=&quot;rounded=1;arcSize=20;whiteSpace=wrap;html=1;fontFamily=Arial;fontSize=18;fillColor=#ffffff;strokeColor=#d4dce6;fontColor=#172336;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;268&quot; y=&quot;26&quot; width=&quot;224&quot; height=&quot;58&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+&lt;mxCell id=&quot;chatgpt&quot; value=&quot;&amp;lt;b&amp;gt;ChatGPT&amp;lt;/b&amp;gt;&quot; style=&quot;rounded=1;arcSize=20;whiteSpace=wrap;html=1;fontFamily=Arial;fontSize=18;fillColor=#ffffff;strokeColor=#d4dce6;fontColor=#172336;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;268&quot; y=&quot;119&quot; width=&quot;224&quot; height=&quot;58&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+&lt;mxCell id=&quot;parent&quot; value=&quot;&amp;lt;b&amp;gt;Parent agent&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;Orchestrator&quot; style=&quot;rounded=1;arcSize=20;whiteSpace=wrap;html=1;fontFamily=Arial;fontSize=18;fillColor=#ffffff;strokeColor=#d4dce6;fontColor=#172336;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;238&quot; y=&quot;212&quot; width=&quot;284&quot; height=&quot;76&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+&lt;mxCell id=&quot;implementation&quot; value=&quot;&amp;lt;b&amp;gt;AI Agent A&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;Implementation&quot; style=&quot;rounded=1;arcSize=20;whiteSpace=wrap;html=1;fontFamily=Arial;fontSize=18;fillColor=#ffffff;strokeColor=#d4dce6;fontColor=#172336;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;26&quot; y=&quot;360&quot; width=&quot;224&quot; height=&quot;80&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+&lt;mxCell id=&quot;testing&quot; value=&quot;&amp;lt;b&amp;gt;AI Agent B&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;Testing&quot; style=&quot;rounded=1;arcSize=20;whiteSpace=wrap;html=1;fontFamily=Arial;fontSize=18;fillColor=#ffffff;strokeColor=#d4dce6;fontColor=#172336;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;268&quot; y=&quot;360&quot; width=&quot;224&quot; height=&quot;80&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+&lt;mxCell id=&quot;human&quot; value=&quot;&amp;lt;b&amp;gt;Human agent&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;via salaryman&quot; style=&quot;rounded=1;arcSize=20;whiteSpace=wrap;html=1;fontFamily=Arial;fontSize=18;fillColor=#dbf5e9;strokeColor=#69ab90;fontColor=#185541;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;510&quot; y=&quot;360&quot; width=&quot;224&quot; height=&quot;80&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+&lt;mxCell id=&quot;edge-0&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#53677f;strokeWidth=2;&quot; edge=&quot;1&quot; source=&quot;requester&quot; target=&quot;chatgpt&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+&lt;mxCell id=&quot;edge-1&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#53677f;strokeWidth=2;&quot; edge=&quot;1&quot; source=&quot;chatgpt&quot; target=&quot;parent&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+&lt;mxCell id=&quot;edge-2&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#53677f;strokeWidth=2;&quot; edge=&quot;1&quot; source=&quot;parent&quot; target=&quot;implementation&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+&lt;mxCell id=&quot;edge-3&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#53677f;strokeWidth=2;&quot; edge=&quot;1&quot; source=&quot;parent&quot; target=&quot;testing&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+&lt;mxCell id=&quot;edge-4&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#53677f;strokeWidth=2;&quot; edge=&quot;1&quot; source=&quot;parent&quot; target=&quot;human&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+&lt;mxCell id=&quot;caption&quot; value=&quot;Works alongside the AI agents&quot; style=&quot;text;html=1;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#185541;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;510&quot; y=&quot;449&quot; width=&quot;224&quot; height=&quot;24&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+&lt;/root&gt;&lt;/mxGraphModel&gt;&lt;/diagram&gt;&lt;/mxfile&gt;">
+  <title id="workflow-title">Salaryman delegation workflow</title>
+  <desc id="workflow-description">A human requester asks ChatGPT. A parent agent orchestrates implementation and testing by two AI agents and delegates work to a human agent via salaryman.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" markerWidth="7" markerHeight="7" refX="8" refY="5" orient="auto">
+      <path d="M 2 1 L 8 5 L 2 9" fill="none" stroke="#53677f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <rect width="760" height="492" rx="18" fill="#f8fafc"/>
+  <g fill="none" stroke="#53677f" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow)">
+    <path d="M 380 84 V 117"/>
+    <path d="M 380 177 V 210"/>
+    <path d="M 380 288 V 326 H 138 V 358"/>
+    <path d="M 380 288 V 358"/>
+    <path d="M 380 288 V 326 H 622 V 358"/>
+  </g>
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+  <g>
+    <rect x="268" y="26" width="224" height="58" rx="11" fill="#ffffff" stroke="#d4dce6" stroke-width="1.5"/>
+    <text x="380" y="62" fill="#172336" font-size="22" font-weight="700">Human requester</text>
+  </g>
+  <g>
+    <rect x="268" y="119" width="224" height="58" rx="11" fill="#ffffff" stroke="#d4dce6" stroke-width="1.5"/>
+    <text x="380" y="155" fill="#172336" font-size="22" font-weight="700">ChatGPT</text>
+  </g>
+  <g>
+    <rect x="238" y="212" width="284" height="76" rx="11" fill="#ffffff" stroke="#d4dce6" stroke-width="1.5"/>
+    <text x="380" y="246" fill="#172336" font-size="22" font-weight="700">Parent agent</text>
+    <text x="380" y="270" fill="#45566c" font-size="17">Orchestrator</text>
+  </g>
+  <g>
+    <rect x="26" y="360" width="224" height="80" rx="11" fill="#ffffff" stroke="#d4dce6" stroke-width="1.5"/>
+    <text x="138" y="396" fill="#172336" font-size="22" font-weight="700">AI Agent A</text>
+    <text x="138" y="420" fill="#45566c" font-size="17">Implementation</text>
+  </g>
+  <g>
+    <rect x="268" y="360" width="224" height="80" rx="11" fill="#ffffff" stroke="#d4dce6" stroke-width="1.5"/>
+    <text x="380" y="396" fill="#172336" font-size="22" font-weight="700">AI Agent B</text>
+    <text x="380" y="420" fill="#45566c" font-size="17">Testing</text>
+  </g>
+  <g>
+    <rect x="510" y="360" width="224" height="80" rx="11" fill="#dbf5e9" stroke="#69ab90" stroke-width="1.5"/>
+    <text x="622" y="396" fill="#185541" font-size="22" font-weight="700">Human agent</text>
+    <text x="622" y="420" fill="#185541" font-size="17">via salaryman</text>
+  </g>
+    <text x="622" y="467" fill="#185541" font-size="14" font-weight="600">Works alongside the AI agents</text>
+  </g>
+</svg>

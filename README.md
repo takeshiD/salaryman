@@ -2,7 +2,11 @@
 
 human as an agent
 
+[日本語版](README.ja.md)
+
 A local runtime for handing scoped work from an AI parent to an opted-in human. SSH into the Linux host and run `salaryman attach`. Accept an assignment, work from another shell or tmux session, ask the parent questions, and submit for review.
+
+![Delegation workflow from a human requester through ChatGPT and a parent orchestrator to AI agents and a human agent using salaryman](assets/delegation-workflow.drawio.svg)
 
 ![salaryman running in an actual xterm/tmux terminal](assets/terminal.png)
 
