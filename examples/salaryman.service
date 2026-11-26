@@ -1,14 +1,14 @@
 [Unit]
-Description=doormat local delegation daemon
+Description=salaryman local delegation daemon
 After=local-fs.target
 
 [Service]
 Type=simple
 # Replace these two paths with the Bun executable and checkout on this machine.
-WorkingDirectory=%h/src/doormat
-ExecStart=%h/.nix-profile/bin/bun --no-env-file %h/src/doormat/src/cli.ts daemon
+WorkingDirectory=%h/src/salaryman
+ExecStart=%h/.nix-profile/bin/bun --no-env-file %h/src/salaryman/src/cli.ts daemon
 Environment=PATH=%h/.nix-profile/bin:/run/current-system/sw/bin:/usr/bin:/bin
-EnvironmentFile=-%h/.config/doormat/daemon.env
+EnvironmentFile=-%h/.config/salaryman/daemon.env
 RuntimeDirectory=human-agent
 RuntimeDirectoryMode=0700
 UMask=0077

@@ -15,9 +15,9 @@ cleanup() {
 trap cleanup EXIT
 
 export XDG_STATE_HOME="$scratch/state" XDG_RUNTIME_DIR="$scratch/run"
-export DOORMAT_PARENT_TOKEN
-DOORMAT_PARENT_TOKEN=$(bun -e 'console.log(crypto.randomUUID())')
-export DOORMAT_REPOSITORIES='{}'
+export SALARYMAN_PARENT_TOKEN
+SALARYMAN_PARENT_TOKEN=$(bun -e 'console.log(crypto.randomUUID())')
+export SALARYMAN_REPOSITORIES='{}'
 ha=(bun "$PWD/src/cli.ts")
 "${ha[@]}" daemon >"$scratch/daemon.log" 2>&1 &
 daemon=$!

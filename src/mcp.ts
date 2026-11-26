@@ -26,7 +26,7 @@ const callResult = (value: object, isError = false): CallToolResult => ({
 export async function mcp() {
   const client = new LocalClient(paths().socket);
   const auth = parentToken();
-  const server = new McpServer({ name: "doormat", version: "0.1.0" });
+  const server = new McpServer({ name: "salaryman", version: "0.1.0" });
   function register<M extends ParentMethod>(name: M) {
     server.registerTool(name, { description: descriptions[name], inputSchema: parentRoutes[name].schema }, async (args: unknown) => {
       try { return callResult(await client.parent(auth, name, args as Params<M>)); }

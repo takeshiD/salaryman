@@ -1,10 +1,10 @@
-# doormat
+# salaryman
 
 human as an agent
 
-A local runtime for handing scoped work from an AI parent to an opted-in human. SSH into the Linux host and run `doormat attach`. Accept an assignment, work from another shell or tmux session, ask the parent questions, and submit for review.
+A local runtime for handing scoped work from an AI parent to an opted-in human. SSH into the Linux host and run `salaryman attach`. Accept an assignment, work from another shell or tmux session, ask the parent questions, and submit for review.
 
-![doormat running in an actual xterm/tmux terminal](assets/terminal.png)
+![salaryman running in an actual xterm/tmux terminal](assets/terminal.png)
 
 ## Install and run on Linux
 
@@ -20,28 +20,28 @@ bun run build
 ./scripts/tui-smoke.sh
 ```
 
-All commands can run from the checkout. For a user-local `doormat` command, create a symlink and put `$HOME/.local/bin` on `PATH`.
+All commands can run from the checkout. For a user-local `salaryman` command, create a symlink and put `$HOME/.local/bin` on `PATH`.
 
 ```sh
 mkdir -p "$HOME/.local/bin"
-ln -s "$PWD/src/cli.ts" "$HOME/.local/bin/doormat"
+ln -s "$PWD/src/cli.ts" "$HOME/.local/bin/salaryman"
 ```
 
-Run `doormat daemon` in one shell and `doormat attach --worker alice` in another. Use `bun --no-env-file src/cli.ts` in place of `doormat` if you skipped the symlink. The build emits `dist/cli.js` for Bun and uses the installed dependencies.
+Run `salaryman daemon` in one shell and `salaryman attach --worker alice` in another. Use `bun --no-env-file src/cli.ts` in place of `salaryman` if you skipped the symlink. The build emits `dist/cli.js` for Bun and uses the installed dependencies.
 
 On Linux without a user runtime directory, create an owned private directory and export its absolute path as `XDG_RUNTIME_DIR` in every participating process. Use the same XDG settings for the daemon, SSH shell, and MCP host. The default runtime base is `/run/user/$(id -u)` and the default state base is `$HOME/.local/state`.
 
-The runtime retains the `human-agent` XDG subdirectories and accepts legacy `HUMAN_AGENT_*` environment variables so existing queues, worktrees, and credentials remain accessible after the rename.
+The runtime retains the `human-agent` XDG subdirectories and accepts legacy `DOORMAT_*` and `HUMAN_AGENT_*` environment variables so existing queues, worktrees, and credentials remain accessible after the rename.
 
 ## Try a task
 
 Press `p` in the TUI to opt in, or launch with `--available`. In a parent shell on the same host, create a stable token and submit an assignment.
 
 ```sh
-mkdir -p "$HOME/.config/doormat"
-export DOORMAT_PARENT_TOKEN_FILE="$HOME/.config/doormat/parent.token"
-(umask 077; set -C; bun -e 'import {randomBytes} from "node:crypto"; console.log(randomBytes(32).toString("base64url"))' > "$DOORMAT_PARENT_TOKEN_FILE")
-doormat parent delegate_to_human - <<'JSON'
+mkdir -p "$HOME/.config/salaryman"
+export SALARYMAN_PARENT_TOKEN_FILE="$HOME/.config/salaryman/parent.token"
+(umask 077; set -C; bun -e 'import {randomBytes} from "node:crypto"; console.log(randomBytes(32).toString("base64url"))' > "$SALARYMAN_PARENT_TOKEN_FILE")
+salaryman parent delegate_to_human - <<'JSON'
 {"requestId":"demo-1","parentId":"demo-parent","title":"Verify the sample","instructions":"Read the scoped context and report the sample value.","context":"The sample value is 42.","allowedTools":["shell"]}
 JSON
 ```
@@ -50,51 +50,51 @@ Press `a` to accept, `k` to ask a question, and `F2` to send. The **Task** pane 
 
 Use `s` to submit a summary, or `j` to submit JSON fields for evidence, a Git ref, a diff, or structured output. Both submission forms use `F2`. Press `h` for your assignment history and `q` to disconnect. At 100 columns and 24 rows the TUI shows the brief and updates side by side. Narrower terminals use one pane, with the same keys to switch views.
 
-The headless CLI supports the same workflow. `connect` opens a headless session without opting into new offers. `online` opts in for a 60-second lease. `heartbeat` or `status` renews it. Pass `--worker alice` to each worker command. Run `doormat --help` for the command list. Example submission file contents follow.
+The headless CLI supports the same workflow. `connect` opens a headless session without opting into new offers. `online` opts in for a 60-second lease. `heartbeat` or `status` renews it. Pass `--worker alice` to each worker command. Run `salaryman --help` for the command list. Example submission file contents follow.
 
 ```json
 {"submissionId":"demo-first","revision":1,"summary":"Sample verified","evidence":["The fixture reports 42."],"output":{"value":42}}
 ```
 
 ```sh
-doormat submit result.json --worker alice
+salaryman submit result.json --worker alice
 ```
 
-The parent can call any MCP tool through `doormat parent TOOL [FILE|-]`. Read a result by sending `{"taskId":"…"}` to `get_human_result`. To approve it, pass the task ID and returned submission ID to `complete_human_task`. The automated demo creates an isolated fixture repo, exchanges a question and answer, and completes after one round of rework. The PTY smoke script drives the real TUI in an isolated tmux server.
+The parent can call any MCP tool through `salaryman parent TOOL [FILE|-]`. Read a result by sending `{"taskId":"…"}` to `get_human_result`. To approve it, pass the task ID and returned submission ID to `complete_human_task`. The automated demo creates an isolated fixture repo, exchanges a question and answer, and completes after one round of rework. The PTY smoke script drives the real TUI in an isolated tmux server.
 
 ## Git workspaces
 
-Set `DOORMAT_REPOSITORIES` in the daemon environment to a JSON map of approved aliases to absolute paths, such as `{"demo":"/home/alice/src/demo"}`. Include `"workspace":{"repository":"demo","ref":"<commit-sha>"}` in the task. A plain local branch or tag also works. Use a full hash when the base must remain stable from creation through acceptance.
+Set `SALARYMAN_REPOSITORIES` in the daemon environment to a JSON map of approved aliases to absolute paths, such as `{"demo":"/home/alice/src/demo"}`. Include `"workspace":{"repository":"demo","ref":"<commit-sha>"}` in the task. A plain local branch or tag also works. Use a full hash when the base must remain stable from creation through acceptance.
 
-Explicit acceptance reserves the assignment and pins the Git base before checkout. The daemon creates a detached worktree under `$XDG_STATE_HOME/human-agent/worktrees/<task-id>` and displays its exact path. Open the path in another SSH shell or use `w` in the TUI to create a detached tmux session. The headless equivalent is `doormat workspace --worker alice --tmux`. An interrupted setup stays `ACCEPTED`. Press `w` to retry. If the reserved path is dirty, moved, a symlink, or otherwise ambiguous, inspect it manually. The daemon preserves worktrees and their registration, including after cancellation.
+Explicit acceptance reserves the assignment and pins the Git base before checkout. The daemon creates a detached worktree under `$XDG_STATE_HOME/human-agent/worktrees/<task-id>` and displays its exact path. Open the path in another SSH shell or use `w` in the TUI to create a detached tmux session. The headless equivalent is `salaryman workspace --worker alice --tmux`. An interrupted setup stays `ACCEPTED`. Press `w` to retry. If the reserved path is dirty, moved, a symlink, or otherwise ambiguous, inspect it manually. The daemon preserves worktrees and their registration, including after cancellation.
 
 For a Git submission, commit in the task checkout and send the full commit hash in `gitRef`, or send a small diff. The daemon stores submitted evidence as provided. Reviewers resolve and inspect Git refs themselves. Worktrees share repository metadata and refs with the source checkout. Use repositories and Git configurations controlled by the operator. Managed setup disables hooks, fsmonitor, global and system Git config, protocol access, and external filters. Submodule initialization and partial clone fetching are outside the runtime workflow.
 
 ## NixOS user service
 
-Copy [examples/doormat.service](examples/doormat.service) into `~/.config/systemd/user/doormat.service`, replacing the Bun binary and checkout paths. If using worktrees, copy and edit [examples/daemon.env](examples/daemon.env) under `~/.config/doormat/`. Ensure `git` and `flock` are on the unit's `PATH`.
+Copy [examples/salaryman.service](examples/salaryman.service) into `~/.config/systemd/user/salaryman.service`, replacing the Bun binary and checkout paths. If using worktrees, copy and edit [examples/daemon.env](examples/daemon.env) under `~/.config/salaryman/`. Ensure `git` and `flock` are on the unit's `PATH`.
 
 ```sh
 systemctl --user daemon-reload
-systemctl --user enable --now doormat.service
-journalctl --user -u doormat.service
+systemctl --user enable --now salaryman.service
+journalctl --user -u salaryman.service
 ```
 
 The unit uses the user manager's runtime directory. Survival across logout depends on the existing user-manager lifecycle on the host. The foreground daemon is also supported. The service examples have no dependency on T3 or Paseo configuration.
 
 ## MCP hosts
 
-The bridge command is `/absolute/path/to/bun --no-env-file /absolute/path/to/doormat/src/cli.ts mcp`. It uses MCP stdio over the host's process pipes and connects to the existing Unix socket. The host must launch it on the daemon machine under the same Unix account. Use an absolute parent token file path and forward `XDG_RUNTIME_DIR` for custom locations. The `DOORMAT_PARENT_TOKEN` environment variable is also supported and takes precedence. Keep each parent's stable token private because it owns that parent's tasks.
+The bridge command is `/absolute/path/to/bun --no-env-file /absolute/path/to/salaryman/src/cli.ts mcp`. It uses MCP stdio over the host's process pipes and connects to the existing Unix socket. The host must launch it on the daemon machine under the same Unix account. Use an absolute parent token file path and forward `XDG_RUNTIME_DIR` for custom locations. The `SALARYMAN_PARENT_TOKEN` environment variable is also supported and takes precedence. Keep each parent's stable token private because it owns that parent's tasks.
 
 The bridge was exercised with the official MCP TypeScript SDK client. The following Codex and Claude Code registration syntax was checked against local CLI help and upstream docs. Registration and full host sessions were left to the operator.
 
 **Codex** `config.toml` or project `.codex/config.toml` entry. [Codex MCP docs](https://developers.openai.com/codex/mcp)
 
 ```toml
-[mcp_servers.doormat]
+[mcp_servers.salaryman]
 command = "/home/alice/.nix-profile/bin/bun"
-args = ["--no-env-file", "/home/alice/src/doormat/src/cli.ts", "mcp"]
-env = { DOORMAT_PARENT_TOKEN_FILE = "/home/alice/.config/doormat/parent.token" }
+args = ["--no-env-file", "/home/alice/src/salaryman/src/cli.ts", "mcp"]
+env = { SALARYMAN_PARENT_TOKEN_FILE = "/home/alice/.config/salaryman/parent.token" }
 env_vars = ["XDG_RUNTIME_DIR"]
 ```
 
@@ -103,17 +103,17 @@ env_vars = ["XDG_RUNTIME_DIR"]
 ```json
 {
   "mcpServers": {
-    "doormat": {
+    "salaryman": {
       "type": "stdio",
       "command": "/home/alice/.nix-profile/bin/bun",
-      "args": ["--no-env-file", "/home/alice/src/doormat/src/cli.ts", "mcp"],
-      "env": {"DOORMAT_PARENT_TOKEN_FILE": "/home/alice/.config/doormat/parent.token"}
+      "args": ["--no-env-file", "/home/alice/src/salaryman/src/cli.ts", "mcp"],
+      "env": {"SALARYMAN_PARENT_TOKEN_FILE": "/home/alice/.config/salaryman/parent.token"}
     }
   }
 }
 ```
 
-**T3 Code.** Use the Codex provider's actual configuration home or the Claude provider's project configuration as above. Check that the resulting thread lists `doormat` tools. Provider launch overrides and instance-specific config homes vary. The exact configuration path and live injection on this installation are unverified. T3's own orchestration MCP endpoint serves a different purpose. [T3 provider docs](https://github.com/pingdotgg/t3code/blob/main/docs/internals/providers.md) · [Codex override issue](https://github.com/pingdotgg/t3code/issues/15828)
+**T3 Code.** Use the Codex provider's actual configuration home or the Claude provider's project configuration as above. Check that the resulting thread lists `salaryman` tools. Provider launch overrides and instance-specific config homes vary. The exact configuration path and live injection on this installation are unverified. T3's own orchestration MCP endpoint serves a different purpose. [T3 provider docs](https://github.com/pingdotgg/t3code/blob/main/docs/internals/providers.md) · [Codex override issue](https://github.com/pingdotgg/t3code/issues/15828)
 
 **Paseo.** The JSON above is also the documented shape of a Paseo agent's `mcpServers` map inside a session configuration. An existing trusted plugin can supply the entry from `agent.open.before`, or persist it via `agent.create.before`. Hook availability and provider support in the installed build are unverified. The local `paseo agent run --help` has no MCP registration flag. [Paseo stdio type](https://github.com/getpaseo/paseo/blob/main/packages/protocol/src/agent-types.ts) · [Paseo hook docs](https://upd.dev/getpaseo/paseo/src/branch/main/public-docs/plugins/hooks.md)
 
@@ -122,12 +122,12 @@ env_vars = ["XDG_RUNTIME_DIR"]
 Use [the human-delegate skill](skills/human-delegate/SKILL.md) as the parent prompt or install it into your chosen host's skill directory. Explicit delegation is the default. Automatic and random routing require an opt-in caller policy, eligible work, and an available worker. The policy helper can be called as follows.
 
 ```sh
-doormat route - <<'JSON'
+salaryman route - <<'JSON'
 {"mode":"random","eligible":true,"available":true,"attemptId":"review-42","rate":0.25}
 JSON
 ```
 
-The parent owns the routing decision and substitutes doormat for one planned subtask. Native AI subagents continue to work independently. The stable attempt ID makes the random choice reproducible. `list_available_humans` reports advisory availability. The daemon assigns offers transactionally.
+The parent owns the routing decision and substitutes salaryman for one planned subtask. Native AI subagents continue to work independently. The stable attempt ID makes the random choice reproducible. `list_available_humans` reports advisory availability. The daemon assigns offers transactionally.
 
 | Tool | Main arguments and behavior |
 | --- | --- |

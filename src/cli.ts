@@ -6,23 +6,23 @@ import { paths, parentToken, workerIdentity } from "./local";
 import { DomainError, id, taskId } from "./model";
 import { parentRoutes, type ParentMethod, type Params } from "./rpc";
 
-const help = `doormat — local human delegation runtime
+const help = `salaryman — local human delegation runtime
 
 Usage
-  doormat daemon
-  doormat mcp                          MCP stdio bridge
-  doormat attach [--worker ID] [--available]
-  doormat connect [--worker ID]        Connect without opting into offers
-  doormat online [--worker ID]         Opt in for one headless lease
-  doormat status | heartbeat | pause | resume | disconnect
-  doormat accept [TASK] | reject REASON [TASK]
-  doormat ask TEXT [TASK] | abandon REASON [TASK]
-  doormat workspace [TASK] [--tmux]     Print path or retry setup
-  doormat submit FILE|- [TASK]         Submit JSON with revision and submissionId
-  doormat events [TASK] [--after CURSOR]
-  doormat history
-  doormat parent TOOL [FILE|-]         Call a parent tool with JSON
-  doormat route FILE|-                  Evaluate opt-in routing policy
+  salaryman daemon
+  salaryman mcp                          MCP stdio bridge
+  salaryman attach [--worker ID] [--available]
+  salaryman connect [--worker ID]        Connect without opting into offers
+  salaryman online [--worker ID]         Opt in for one headless lease
+  salaryman status | heartbeat | pause | resume | disconnect
+  salaryman accept [TASK] | reject REASON [TASK]
+  salaryman ask TEXT [TASK] | abandon REASON [TASK]
+  salaryman workspace [TASK] [--tmux]     Print path or retry setup
+  salaryman submit FILE|- [TASK]         Submit JSON with revision and submissionId
+  salaryman events [TASK] [--after CURSOR]
+  salaryman history
+  salaryman parent TOOL [FILE|-]         Call a parent tool with JSON
+  salaryman route FILE|-                  Evaluate opt-in routing policy
 
 Worker operations accept --worker ID (default: human).
 Headless sessions must heartbeat at least once per minute.
@@ -63,9 +63,9 @@ async function main() {
     status: [0, 0], heartbeat: [0, 0], pause: [0, 0], resume: [0, 0], disconnect: [0, 0],
     accept: [0, 1], reject: [1, 2], ask: [1, 2], abandon: [1, 2], workspace: [0, 1], submit: [1, 2],
     events: [0, 1], history: [0, 0], parent: [1, 2], route: [1, 1] };
-  if (!Object.hasOwn(count, command)) throw new Error("Unknown command. Run doormat --help");
+  if (!Object.hasOwn(count, command)) throw new Error("Unknown command. Run salaryman --help");
   const [min, max] = count[command]!;
-  if (cli.positionals.length < min || cli.positionals.length > max) throw new Error("Unexpected or missing arguments. Run doormat --help");
+  if (cli.positionals.length < min || cli.positionals.length > max) throw new Error("Unexpected or missing arguments. Run salaryman --help");
   const flags: Record<string, string[]> = { daemon: [], mcp: [], parent: [], route: [], attach: ["worker", "available"],
     workspace: ["worker", "tmux"], events: ["worker", "after"] };
   if (Object.keys(cli.values).some((value) => !(flags[command] ?? ["worker"]).includes(value))) throw new Error("Flag is unsupported for this command");

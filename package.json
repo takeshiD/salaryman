@@ -1,11 +1,11 @@
 {
-  "name": "doormat",
+  "name": "salaryman",
   "description": "human as an agent",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "doormat": "./src/cli.ts"
+    "salaryman": "./src/cli.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

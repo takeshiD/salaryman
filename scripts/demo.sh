@@ -12,9 +12,9 @@ cleanup() {
 }
 trap cleanup EXIT
 export XDG_STATE_HOME="$scratch/state" XDG_RUNTIME_DIR="$scratch/run"
-export DOORMAT_PARENT_TOKEN DOORMAT_REPOSITORIES
-DOORMAT_PARENT_TOKEN=$(bun -e 'console.log(crypto.randomUUID())')
-DOORMAT_REPOSITORIES=$(jq -cn --arg path "$scratch/fixture" '{fixture:$path}')
+export SALARYMAN_PARENT_TOKEN SALARYMAN_REPOSITORIES
+SALARYMAN_PARENT_TOKEN=$(bun -e 'console.log(crypto.randomUUID())')
+SALARYMAN_REPOSITORIES=$(jq -cn --arg path "$scratch/fixture" '{fixture:$path}')
 git init -q "$scratch/fixture"
 printf 'The sample answer is 42.\n' >"$scratch/fixture/answer.txt"
 git -C "$scratch/fixture" add answer.txt

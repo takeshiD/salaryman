@@ -131,7 +131,7 @@ export async function attach(client: LocalClient, human: Human, available: boole
       const presence = networkError ? "OFFLINE" : snapshot?.availability ?? "CONNECTING";
       showEventsFor(view !== "history" ? task?.id ?? "" : "");
       markUpdatesOpened();
-      set(header, [["doormat", "accent"], ["  /  ", "muted"],
+      set(header, [["salaryman", "accent"], ["  /  ", "muted"],
         ...(!snapshot?.task || networkError ? [[presence + "   ", networkError ? "error" : "label"]] satisfies Segment[] : []),
         [human.worker, "muted"]]);
       const tab = (name: string, active: boolean, tone: Tone = "muted"): Segment =>
